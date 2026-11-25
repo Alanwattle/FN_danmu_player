@@ -53,7 +53,7 @@
 
 填写 FN ID 时只需输入类似下面的标识，不需要协议和端口：
 
-    wuyihui
+    demo-ushio-4827
 
 FN ID 用于定位 NAS，仍需填写飞牛影视本地账号和密码。
 
@@ -103,7 +103,7 @@ FN ID 用于定位 NAS，仍需填写飞牛影视本地账号和密码。
 
 FN ID 示例：
 
-    wuyihui
+    demo-ushio-4827
 
 FN ID 流程会请求 FN Connect 定位接口，选择可用的 HTTPS 地址，访问 /v 激活中继，然后继续调用飞牛影视 API。
 

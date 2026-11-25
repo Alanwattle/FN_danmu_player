@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">潮汐放映</title>
+  <desc id="desc">两条潮汐弧线围合一枚播放键</desc>
+  <rect width="48" height="48" rx="12" fill="#0D1222"/>
+  <path d="M7 23C12 13 23 9 33 14C38 16 41 20 42 25C36 20 30 19 24 22C17 26 13 31 7 30C6 28 6 25 7 23Z" fill="#BFB2FF"/>
+  <path d="M6 31C13 34 19 33 25 29C31 25 37 26 42 30C39 37 29 40 20 37C14 36 9 34 6 31Z" fill="#87E6D4"/>
+  <path d="M20 21L31 26L20 31Z" fill="#0D1222"/>
+  <path d="M20 21L23 22.4L23 29.6L20 31Z" fill="#F7F3FF"/>
+</svg>

@@ -14,6 +14,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -62,7 +63,7 @@ import java.util.concurrent.Executors;
 
 @androidx.media3.common.util.UnstableApi
 public final class PlaybackActivity extends Activity {
-    private static final ExecutorService PROGRESS = Executors.newSingleThreadExecutor();
+    private final ExecutorService progress = Executors.newSingleThreadExecutor();
     private final ExecutorService tasks = Executors.newFixedThreadPool(3);
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable hide = () -> showControls(false);
@@ -327,8 +328,10 @@ public final class PlaybackActivity extends Activity {
         android.graphics.Rect screen = new android.graphics.Rect();
         comments.getGlobalVisibleRect(screen);
         try {
-            enterPictureInPictureMode(new PictureInPictureParams.Builder().setAspectRatio(new Rational(16, 9))
-                    .setSourceRectHint(screen).build());
+            PictureInPictureParams.Builder builder = new PictureInPictureParams.Builder()
+                    .setAspectRatio(new Rational(16, 9)).setSourceRectHint(screen);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) builder.setAutoEnterEnabled(true);
+            enterPictureInPictureMode(builder.build());
         }
         catch (IllegalStateException ignored) { feedback("此设备暂时无法开启画中画"); }
     }
@@ -746,7 +749,7 @@ public final class PlaybackActivity extends Activity {
         if (client != null && current != null) {
             FnClient connection = client;
             long reported = ended ? duration : position;
-            PROGRESS.execute(() -> {
+            progress.execute(() -> {
                 try { connection.record(current, reported, duration); } catch (Exception ignored) {}
             });
         }
@@ -782,6 +785,7 @@ public final class PlaybackActivity extends Activity {
     @Override protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         tasks.shutdownNow();
+        progress.shutdownNow();
         release();
         super.onDestroy();
     }
@@ -874,6 +878,9 @@ public final class PlaybackActivity extends Activity {
                     return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP && direction == 0 && !held) {
+                        view.performClick();
+                    }
                     if (player != null && held) player.setPlaybackSpeed(speed);
                     if (event.getActionMasked() == MotionEvent.ACTION_UP && direction == 1 && player != null && !locked) {
                         player.seekTo(target);

@@ -307,10 +307,10 @@ public final class LibraryActivity extends Activity {
                 try { resume = current.resume(); } catch (Exception ignored) { resume = Collections.emptyList(); }
                 LinkedHashMap<String, Title> records = new LinkedHashMap<>();
                 if (groups.isEmpty()) {
-                    for (Title title : current.page("", "", 1).titles) records.put(title.id, title);
+                    collectPages(current, "", records);
                 } else {
-                    for (Title group : groups.subList(0, Math.min(5, groups.size()))) {
-                        for (Title title : current.page(group.id, "", 1).titles) records.putIfAbsent(title.id, title);
+                    for (Title group : groups) {
+                        collectPages(current, group.id, records);
                     }
                 }
                 List<Title> newRecent = new ArrayList<>(records.values());
@@ -338,6 +338,15 @@ public final class LibraryActivity extends Activity {
                 });
             }
         });
+    }
+
+    private void collectPages(FnClient current, String library, LinkedHashMap<String, Title> records)
+            throws Exception {
+        for (int page = 1; ; page++) {
+            FnClient.Page result = current.page(library, "", page);
+            for (Title title : result.titles) records.putIfAbsent(title.id, title);
+            if (!result.more) return;
+        }
     }
 
     private void refresh() { loaded = false; navigate(tab); }
@@ -826,7 +835,7 @@ public final class LibraryActivity extends Activity {
         LinearLayout server = form(body, "飞牛影视", "plug");
         int url = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI;
         EditText host = labeled(server, "服务器地址或 FN ID",
-                "http://192.168.1.10:5666 或 wuyihui",
+                "http://192.168.1.10:5666 或 demo-ushio-4827",
                 saved == null ? "" : saved.relay ? saved.relayId : saved.base, url);
         EditText user = labeled(server, "账号", "飞牛影视账号", saved == null ? "" : saved.username,
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);

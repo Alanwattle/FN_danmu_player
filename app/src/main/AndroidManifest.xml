@@ -6,6 +6,8 @@
         android:label="潮汐放映"
         android:icon="@drawable/ic_ushio"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Ushio">
         <activity android:name=".PlaybackActivity" android:exported="false"

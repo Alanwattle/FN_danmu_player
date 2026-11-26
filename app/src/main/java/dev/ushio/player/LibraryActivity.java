@@ -33,6 +33,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Calendar;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -63,6 +65,7 @@ public final class LibraryActivity extends Activity {
     private List<Title> libraries = Collections.emptyList();
     private List<Title> recent = Collections.emptyList();
     private List<Title> watching = Collections.emptyList();
+    private LinearLayout exploration;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -271,28 +274,63 @@ public final class LibraryActivity extends Activity {
         ui.space(body, 7);
         if (!demo && !loaded) { startLoad(body); return; }
         List<Title> all = demo ? Demo.TITLES : recent;
-        Title featured = null;
-        for (Title title : all) if (!title.folder()) { featured = title; break; }
-        if (featured != null) body.addView(hero(featured, false, this::home),
-                new LinearLayout.LayoutParams(-1, ui.dp(298)));
         if (all.isEmpty()) {
             message(body, "片库暂无内容", "飞牛影视完成媒体扫描后，影片会显示在这里。", "刷新", this::refresh);
             return;
         }
+        recommendations(body, all);
         if (!demo && !watching.isEmpty()) {
             LinearLayout section = section();
             ui.space(section, 15);
             sectionTitle(section, "继续观看", "", null);
-            LinearLayout rail = rail();
+            LinearLayout rail = rail(section);
             for (Title title : watching.subList(0, Math.min(watching.size(), 12))) {
                 rail.addView(card(title, 85, true, this::home), new LinearLayout.LayoutParams(ui.dp(158), -2));
                 ui.gap(rail, 11);
             }
         }
-        LinearLayout shelf = section();
-        ui.space(shelf, 15);
-        sectionTitle(shelf, "探索片库", "查看片库", this::library);
-        ui.space(shelf, 5);
+        exploration = ui.column();
+        content.addView(exploration, new LinearLayout.LayoutParams(-1, -2));
+        renderExploration(all);
+        ui.space(content, 23);
+    }
+
+    private void recommendations(LinearLayout body, List<Title> all) {
+        ui.space(body, 15);
+        sectionTitle(body, "今日推荐", "", null);
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        ui.pad(scroll, 20, 0, 20, 0);
+        LinearLayout cards = ui.row();
+        cards.setGravity(Gravity.TOP);
+        scroll.addView(cards);
+        body.addView(scroll);
+        for (Title title : dailyRecommendations(all)) {
+            cards.addView(card(title, 190, false, this::home),
+                    new LinearLayout.LayoutParams(ui.dp(220), -2));
+            ui.gap(cards, 12);
+        }
+    }
+
+    private List<Title> dailyRecommendations(List<Title> all) {
+        ArrayList<Title> candidates = new ArrayList<>();
+        for (Title title : all) if (!title.folder()) candidates.add(title);
+        Collections.shuffle(candidates, new Random(dailySeed()));
+        return candidates.subList(0, Math.min(3, candidates.size()));
+    }
+
+    private long dailySeed() {
+        Calendar today = Calendar.getInstance();
+        return today.get(Calendar.YEAR) * 1000L + today.get(Calendar.DAY_OF_YEAR);
+    }
+
+    private void renderExploration(List<Title> all) {
+        if (exploration == null) return;
+        exploration.removeAllViews();
+        ui.space(exploration, 15);
+        sectionTitle(exploration, "探索片库", "查看片库", this::library);
+        ui.space(exploration, 5);
         LinearLayout chips = ui.row();
         String[] keys = {"", "Movie", "TV"};
         String[] names = {"全部", "电影", "剧集"};
@@ -303,26 +341,23 @@ public final class LibraryActivity extends Activity {
             label.setGravity(Gravity.CENTER);
             ui.pad(label, 15, 0, 15, 0);
             ui.click(label, active ? 0xff2d2547 : Ui.PANEL, 17, Ui.STROKE, () -> {
-                int y = scroll.getScrollY();
                 filter = key;
-                home();
-                scroll.post(() -> scroll.scrollTo(0, y));
+                renderExploration(all);
             });
             chips.addView(label, new LinearLayout.LayoutParams(-2, ui.dp(35)));
             ui.gap(chips, 8);
         }
-        shelf.addView(chips);
-        ui.space(shelf, 16);
+        exploration.addView(chips);
+        ui.space(exploration, 16);
         ArrayList<Title> shown = new ArrayList<>();
         for (Title title : all) if (filter.isEmpty() || title.is(filter)) shown.add(title);
-        if (shown.size() > 1 && shown.remove(featured)) shown.add(featured);
-        LinearLayout rail = rail();
+        LinearLayout rail = rail(exploration);
         for (Title title : shown.subList(0, Math.min(shown.size(), 24))) {
-            rail.addView(card(title, 128, false, this::home), new LinearLayout.LayoutParams(ui.dp(111), -2));
+            rail.addView(card(title, 128, false, this::home),
+                    new LinearLayout.LayoutParams(ui.dp(111), -2));
             ui.gap(rail, 11);
         }
         if (shown.isEmpty()) rail.addView(ui.text("此分类暂无内容", 13, Ui.MUTED, false));
-        ui.space(content, 23);
     }
 
     private void startLoad(LinearLayout body) {
@@ -457,7 +492,7 @@ public final class LibraryActivity extends Activity {
         return view;
     }
 
-    private LinearLayout rail() {
+    private LinearLayout rail(LinearLayout host) {
         HorizontalScrollView view = new HorizontalScrollView(this);
         view.setHorizontalScrollBarEnabled(false);
         view.setClipToPadding(false);
@@ -465,7 +500,7 @@ public final class LibraryActivity extends Activity {
         LinearLayout cards = ui.row();
         cards.setGravity(Gravity.TOP);
         view.addView(cards);
-        content.addView(view);
+        host.addView(view);
         return cards;
     }
 

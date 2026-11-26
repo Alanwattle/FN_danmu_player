@@ -18,11 +18,11 @@
 | 示例片库 | 已完成 |
 | 发布签名 | 未配置，当前 APK 使用开发签名 |
 
-当前版本是 **1.1.2**，最低支持 Android 8.0（API 26）。
+当前版本是 **1.1.3**，最低支持 Android 8.0（API 26）。
 
 ## 下载
 
-- [APK 1.1.2](release/ushio-1.1.2-logo-android.apk)
+- [APK 1.1.3](release/ushio-1.1.3-logo-android.apk)
 - [Logo SVG](branding/logo.svg)
 - [首页截图](release/home.png)
 - [播放器截图](release/player.png)
@@ -37,6 +37,8 @@
 - 电影、剧集、季、集层级浏览
 - 片名搜索
 - 首页推荐和继续观看
+- 动漫片库每日随机推荐 3 部影片并自动切换
+- 首页区块稳定布局和封面缓存
 - 飞牛影视播放进度回传
 - 飞牛影视海报和背景图加载
 - 支持飞牛影视返回的转码源和原画源
@@ -126,13 +128,14 @@ FN ID 流程会请求 FN Connect 定位接口，选择可用的 HTTPS 地址，�
 Windows PowerShell：
 
     $env:ANDROID_HOME = "C:\Android\Sdk"
-    .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+    .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug
 
 APK 输出路径：
 
     app/build/outputs/apk/debug/app-debug.apk
+    app/build/outputs/apk/release/app-release.apk
 
-当前构建使用 Android Debug keystore。发布版本需要配置 signingConfigs 和自己的 keystore。
+当前 Release 构建暂时使用 Android Debug keystore。正式分发前需要配置 signingConfigs 和自己的发布 keystore。
 
 ## 项目结构
 
@@ -159,7 +162,7 @@ APK 输出路径：
 
 构建时执行：
 
-    .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
+    .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug
 
 已覆盖的自动化登录场景：
 
@@ -191,6 +194,14 @@ APK 输出路径：
 - 使用公网访问时建议使用有效 HTTPS 证书，并在 FN Connect 或 NAS 端启用必要的访问保护。
 
 ## 版本记录
+
+### 1.1.3
+
+- 首页顶部推荐改为动漫片库每日随机卡片轮播
+- 探索片库切换时保持顶部推荐和继续观看区域稳定
+- 增加封面缓存和并发请求去重
+- 修复 Android 15+ 普通页面与系统状态栏重叠
+- 升级目标 API 到 35
 
 ### 1.1.2
 

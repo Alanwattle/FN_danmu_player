@@ -26,6 +26,8 @@ import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ViewFlipper;
+import android.view.animation.AnimationUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +67,9 @@ public final class LibraryActivity extends Activity {
     private List<Title> libraries = Collections.emptyList();
     private List<Title> recent = Collections.emptyList();
     private List<Title> watching = Collections.emptyList();
+    private List<Title> anime = Collections.emptyList();
     private LinearLayout exploration;
+    private ViewFlipper recommendationsFlipper;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -83,6 +87,7 @@ public final class LibraryActivity extends Activity {
         requests.shutdownNow();
         art.shutdownNow();
         pendingPictures.clear();
+        if (recommendationsFlipper != null) recommendationsFlipper.stopFlipping();
         super.onDestroy();
     }
 
@@ -278,7 +283,7 @@ public final class LibraryActivity extends Activity {
             message(body, "片库暂无内容", "飞牛影视完成媒体扫描后，影片会显示在这里。", "刷新", this::refresh);
             return;
         }
-        recommendations(body, all);
+        recommendations(body, demo ? all : anime);
         if (!demo && !watching.isEmpty()) {
             LinearLayout section = section();
             ui.space(section, 15);
@@ -298,19 +303,22 @@ public final class LibraryActivity extends Activity {
     private void recommendations(LinearLayout body, List<Title> all) {
         ui.space(body, 15);
         sectionTitle(body, "今日推荐", "", null);
-        HorizontalScrollView scroll = new HorizontalScrollView(this);
-        scroll.setHorizontalScrollBarEnabled(false);
-        scroll.setClipToPadding(false);
-        ui.pad(scroll, 20, 0, 20, 0);
-        LinearLayout cards = ui.row();
-        cards.setGravity(Gravity.TOP);
-        scroll.addView(cards);
-        body.addView(scroll);
+        if (recommendationsFlipper != null) recommendationsFlipper.stopFlipping();
+        recommendationsFlipper = new ViewFlipper(this);
+        recommendationsFlipper.setInAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_in));
+        recommendationsFlipper.setOutAnimation(AnimationUtils.loadAnimation(this, android.R.anim.fade_out));
         for (Title title : dailyRecommendations(all)) {
-            cards.addView(card(title, 190, false, this::home),
-                    new LinearLayout.LayoutParams(ui.dp(220), -2));
-            ui.gap(cards, 12);
+            recommendationsFlipper.addView(hero(title, false, this::home),
+                    new FrameLayout.LayoutParams(-1, ui.dp(298)));
         }
+        if (recommendationsFlipper.getChildCount() == 0) {
+            recommendationsFlipper.addView(ui.text("动漫片库暂无内容", 13, Ui.MUTED, false),
+                    new FrameLayout.LayoutParams(-1, ui.dp(80)));
+        } else if (recommendationsFlipper.getChildCount() > 1) {
+            recommendationsFlipper.setFlipInterval(6000);
+            recommendationsFlipper.startFlipping();
+        }
+        body.addView(recommendationsFlipper, new LinearLayout.LayoutParams(-1, ui.dp(298)));
     }
 
     private List<Title> dailyRecommendations(List<Title> all) {
@@ -371,19 +379,26 @@ public final class LibraryActivity extends Activity {
                 List<Title> resume;
                 try { resume = current.resume(); } catch (Exception ignored) { resume = Collections.emptyList(); }
                 LinkedHashMap<String, Title> records = new LinkedHashMap<>();
+                LinkedHashMap<String, Title> animeRecords = new LinkedHashMap<>();
                 if (groups.isEmpty()) {
                     collectPages(current, "", records);
                 } else {
                     for (Title group : groups) {
-                        collectPages(current, group.id, records);
+                        LinkedHashMap<String, Title> groupRecords = new LinkedHashMap<>();
+                        collectPages(current, group.id, groupRecords);
+                        records.putAll(groupRecords);
+                        if (isAnimeLibrary(group)) animeRecords.putAll(groupRecords);
                     }
                 }
                 List<Title> newRecent = new ArrayList<>(records.values());
                 newRecent.sort((a, b) -> b.year.compareTo(a.year));
+                List<Title> newAnime = new ArrayList<>(animeRecords.values());
+                newAnime.sort((a, b) -> b.year.compareTo(a.year));
                 List<Title> newWatching = resume;
                 runOnUiThread(() -> {
                     if (isDestroyed() || current != client) return;
                     libraries = groups;
+                    anime = newAnime;
                     watching = newWatching;
                     recent = newRecent;
                     loading = false;
@@ -412,6 +427,12 @@ public final class LibraryActivity extends Activity {
             for (Title title : result.titles) records.putIfAbsent(title.id, title);
             if (!result.more) return;
         }
+    }
+
+    private boolean isAnimeLibrary(Title library) {
+        String label = (library.name + " " + library.series).toLowerCase(Locale.ROOT);
+        return label.contains("动漫") || label.contains("动画") || label.contains("番剧")
+                || label.contains("国漫") || label.contains("anime") || label.contains("アニメ");
     }
 
     private void refresh() { loaded = false; navigate(tab); }

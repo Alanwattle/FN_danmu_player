@@ -34,6 +34,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,9 +43,11 @@ public final class LibraryActivity extends Activity {
     interface Result<T> { void accept(T value); }
     private final ExecutorService requests = Executors.newFixedThreadPool(3);
     private final ExecutorService art = Executors.newFixedThreadPool(4);
-    private final LruCache<String, Bitmap> pictures = new LruCache<String, Bitmap>(18 * 1024 * 1024) {
+    private final LruCache<String, Bitmap> pictures = new LruCache<String, Bitmap>(32 * 1024 * 1024) {
         @Override protected int sizeOf(String key, Bitmap value) { return value.getByteCount(); }
     };
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<ImageView>> pendingPictures =
+            new ConcurrentHashMap<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Ui ui;
     private Preferences preferences;
@@ -75,6 +79,7 @@ public final class LibraryActivity extends Activity {
         handler.removeCallbacksAndMessages(null);
         requests.shutdownNow();
         art.shutdownNow();
+        pendingPictures.clear();
         super.onDestroy();
     }
 
@@ -424,17 +429,30 @@ public final class LibraryActivity extends Activity {
         int size = ui.dp(wide ? 520 : 200);
         String key = current.session.base + "#" + size + "#" + path;
         Bitmap cached = pictures.get(key);
-        if (cached != null) view.setImageBitmap(cached);
-        else art.execute(() -> {
+        if (cached != null) {
+            view.setImageBitmap(cached);
+            return view;
+        }
+        CopyOnWriteArrayList<ImageView> waiting = pendingPictures.computeIfAbsent(key,
+                ignored -> new CopyOnWriteArrayList<>());
+        waiting.add(view);
+        if (waiting.size() > 1) return view;
+        art.execute(() -> {
+            Bitmap bitmap = null;
             try {
-                Bitmap bitmap = current.image(path, size);
+                bitmap = current.image(path, size);
                 if (bitmap != null) {
                     pictures.put(key, bitmap);
-                    runOnUiThread(() -> {
-                        if (!isDestroyed() && current == client) view.setImageBitmap(bitmap);
-                    });
                 }
             } catch (Exception ignored) {}
+            CopyOnWriteArrayList<ImageView> completed = pendingPictures.remove(key);
+            if (bitmap != null && completed != null) {
+                Bitmap result = bitmap;
+                runOnUiThread(() -> {
+                    if (isDestroyed() || current != client) return;
+                    for (ImageView target : completed) target.setImageBitmap(result);
+                });
+            }
         });
         return view;
     }

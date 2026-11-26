@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -105,6 +106,7 @@ public final class LibraryActivity extends Activity {
         root = ui.column();
         root.setBackgroundColor(Ui.BASE);
         setContentView(root);
+        fitSystemBars(root);
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setVerticalScrollBarEnabled(false);
@@ -114,6 +116,29 @@ public final class LibraryActivity extends Activity {
         if (nav) root.addView(navigation(), new LinearLayout.LayoutParams(-1, ui.dp(65)));
         getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
                 | android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    }
+
+    private void fitSystemBars(View view) {
+        view.setOnApplyWindowInsetsListener((target, insets) -> {
+            int left, top, right, bottom;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets bars = insets.getInsets(
+                        android.view.WindowInsets.Type.statusBars()
+                                | android.view.WindowInsets.Type.navigationBars());
+                left = bars.left;
+                top = bars.top;
+                right = bars.right;
+                bottom = bars.bottom;
+            } else {
+                left = insets.getSystemWindowInsetLeft();
+                top = insets.getSystemWindowInsetTop();
+                right = insets.getSystemWindowInsetRight();
+                bottom = insets.getSystemWindowInsetBottom();
+            }
+            target.setPadding(left, top, right, bottom);
+            return insets;
+        });
+        view.requestApplyInsets();
     }
 
     private <T> void run(Callable<T> call, Result<T> success, Result<Exception> failure) {

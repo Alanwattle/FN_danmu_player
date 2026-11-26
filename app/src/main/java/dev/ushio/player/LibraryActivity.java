@@ -295,6 +295,7 @@ public final class LibraryActivity extends Activity {
             }
         }
         exploration = ui.column();
+        ui.pad(exploration, 20, 0, 20, 0);
         content.addView(exploration, new LinearLayout.LayoutParams(-1, -2));
         renderExploration(all);
         ui.space(content, 23);
@@ -517,7 +518,6 @@ public final class LibraryActivity extends Activity {
         HorizontalScrollView view = new HorizontalScrollView(this);
         view.setHorizontalScrollBarEnabled(false);
         view.setClipToPadding(false);
-        ui.pad(view, 20, 0, 20, 0);
         LinearLayout cards = ui.row();
         cards.setGravity(Gravity.TOP);
         view.addView(cards);

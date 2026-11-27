@@ -135,7 +135,14 @@ APK 输出路径：
     app/build/outputs/apk/debug/app-debug.apk
     app/build/outputs/apk/release/app-release.apk
 
-当前 Release 构建暂时使用 Android Debug keystore。正式分发前需要配置 signingConfigs 和自己的发布 keystore。
+Release 构建会读取项目根目录的 `keystore.properties`。文件内容示例：
+
+    storeFile=C:/Codex/android/ushio-release.jks
+    storePassword=填写 keystore 密码
+    keyAlias=填写 alias
+    keyPassword=填写 alias 密码
+
+`keystore.properties` 已加入 `.gitignore`，不会提交到仓库。缺少该文件时，Release 构建会回退到 Android Debug keystore，仅适合本地测试。
 
 ## 项目结构
 

@@ -1,6 +1,7 @@
 .tooling/
 .gradle/
 local.properties
+keystore.properties
 **/build/
 .idea/
 *.iml
